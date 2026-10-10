@@ -39,6 +39,27 @@ class ProgressTests(unittest.TestCase):
                 self.assertEqual(head, base)
                 self.assertEqual(progress.compare("Libraries", "Library", "functions", base, head), [])
 
+    def test_stub_wrappers_of_any_return_type(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            library = root / "libSceExample"
+            library.mkdir()
+            (library / "Export.cpp").write_text(
+                "static int Unsupported() {\n    NotImplemented_nid_no_patch(__func__);\n    return 0;\n}\n"
+                "static const char* UnsupportedName(int) { NotImplemented_nid_no_patch(__func__); return nullptr; }\n"
+                "static std::pair<int, int> *UnsupportedPair() { NotImplemented_nid_no_patch(__func__); return nullptr; }\n"
+                "[[noreturn]] static void Fail() { NotImplemented_nid_no_patch(__func__); }\n"
+                "static int Supported() { return 1; }\n"
+                "int APS5_VABI Int() { return Unsupported(); }\n"
+                "const char* APS5_VABI Name() { return UnsupportedName(0); }\n"
+                "void* APS5_VABI Pair() { return UnsupportedPair(); }\n"
+                "void APS5_VABI NoReturn() { Fail(); }\n"
+                "int APS5_VABI Ready() { return Supported(); }\n")
+            with patch.object(progress, "PRX", root):
+                group = progress.collect_libraries()["groups"][0]
+            self.assertEqual(group["done_names"], ["Ready"])
+            self.assertEqual(group["todo_names"], ["Int", "Name", "NoReturn", "Pair"])
+
     def test_shared_source_refactor_preserves_functions(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
