@@ -8,6 +8,7 @@
 
 extern "C" {
 char* APS5_VABI basename_nid_postfix(const char*);
+char* APS5_VABI dirname_nid_postfix(const char*);
 char* APS5_VABI __inet_ntoa_nid_postfix(unsigned int);
 int* APS5_VABI __error_nid_postfix();
 std::size_t APS5_VABI strnlen_nid_postfix(const char*, std::size_t);
@@ -123,6 +124,23 @@ int main() {
     Require(std::strcmp(basename_nid_postfix("one\\two"), "one\\two") == 0);
     const std::string longName(1024, 'x');
     Require(basename_nid_postfix(longName.c_str()) == nullptr && *__error_nid_postfix() == 63);
+    Require(std::strcmp(dirname_nid_postfix(nullptr), ".") == 0);
+    Require(std::strcmp(dirname_nid_postfix(""), ".") == 0);
+    Require(std::strcmp(dirname_nid_postfix("name"), ".") == 0);
+    Require(std::strcmp(dirname_nid_postfix("name///"), ".") == 0);
+    Require(std::strcmp(dirname_nid_postfix("/"), "/") == 0);
+    Require(std::strcmp(dirname_nid_postfix("////"), "/") == 0);
+    Require(std::strcmp(dirname_nid_postfix("/usr"), "/") == 0);
+    Require(std::strcmp(dirname_nid_postfix("///usr//"), "/") == 0);
+    Require(std::strcmp(dirname_nid_postfix("one/two"), "one") == 0);
+    Require(std::strcmp(dirname_nid_postfix("//one//two//"), "//one") == 0);
+    Require(std::strcmp(dirname_nid_postfix(path), "/one") == 0);
+    Require(std::strcmp(path, "/one/two///") == 0);
+    Require(std::strcmp(dirname_nid_postfix("one\\two"), ".") == 0);
+    const std::string longParent = std::string(1023, 'x') + "/name";
+    Require(std::strcmp(dirname_nid_postfix(longParent.c_str()), longParent.substr(0, 1023).c_str()) == 0);
+    const std::string tooLongParent = std::string(1024, 'x') + "/name";
+    Require(dirname_nid_postfix(tooLongParent.c_str()) == nullptr && *__error_nid_postfix() == 63);
     const unsigned char loopbackBytes[4] = {127, 0, 0, 1};
     unsigned int loopback;
     std::memcpy(&loopback, loopbackBytes, sizeof(loopback));
